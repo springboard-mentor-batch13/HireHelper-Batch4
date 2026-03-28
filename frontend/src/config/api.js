@@ -67,6 +67,9 @@ export const updateProfilePicture = (data) =>
     }
   });
 
+export const changePassword = (data) =>
+  BASE_API.put("/users/change-password", data);
+
 
 /* =====================================================
    TASK API

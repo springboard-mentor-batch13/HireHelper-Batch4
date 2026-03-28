@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
-import { getProfile, updateProfile, updateProfilePicture } from "../config/api";
-import { Camera, User, Mail, Phone, Pencil, Check, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import {
+  getProfile,
+  updateProfile,
+  updateProfilePicture,
+  changePassword,
+} from "../config/api";
+import { Camera, User, Mail, Phone, Pencil, Check, X, Lock } from "lucide-react";
 
 const Settings = () => {
   const [profile, setProfile] = useState({});
@@ -8,6 +14,15 @@ const Settings = () => {
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError]     = useState("");
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
 
   const [form, setForm] = useState({
     first_name:   "",
@@ -66,6 +81,63 @@ const Settings = () => {
     setSaveError("");
   };
 
+  const openPasswordModal = () => {
+    setPasswordForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    });
+    setPasswordError("");
+    setPasswordSuccess("");
+    setPasswordModalOpen(true);
+  };
+
+  const closePasswordModal = () => {
+    setPasswordModalOpen(false);
+    setPasswordLoading(false);
+  };
+
+  const handlePasswordInput = (e) => {
+    setPasswordForm({ ...passwordForm, [e.target.name]: e.target.value });
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmNewPassword
+    ) {
+      setPasswordError("Please fill in all password fields.");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+      setPasswordError("New password and confirm password do not match.");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const res = await changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+
+      setPasswordSuccess(res.data?.message || "Password changed successfully.");
+      setTimeout(() => {
+        closePasswordModal();
+      }, 1200);
+    } catch (err) {
+      setPasswordError(err.response?.data?.message || "Failed to change password.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   /* ─── Photo upload ──────────────────────────────────────────── */
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
@@ -91,7 +163,7 @@ const Settings = () => {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-12 page-enter">
+    <div className="max-w-3xl mx-auto space-y-6 pb-12 px-3 sm:px-0 page-enter">
 
       {/* ── Page header ─────────────────────────────────────────── */}
       <div>
@@ -241,7 +313,7 @@ const Settings = () => {
       </div>
 
       {/* ── Account info strip ──────────────────────────────────── */}
-      <div className="surface-card p-5">
+      <div className="surface-card p-4 sm:p-5">
         <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Account Info</p>
         <div className="space-y-0 divide-y divide-slate-100">
           <div className="data-row">
@@ -260,8 +332,119 @@ const Settings = () => {
                 : "—"}
             </span>
           </div>
+          <div className="data-row flex-col items-start gap-2 sm:flex-row sm:items-center">
+            <span className="text-sm font-medium text-slate-600">Password</span>
+            <button
+              onClick={openPasswordModal}
+              className="btn-secondary text-sm px-3 py-1.5 w-full sm:w-auto"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Change Password
+            </button>
+          </div>
         </div>
       </div>
+
+      {passwordModalOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[999] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div
+              className="absolute inset-0 bg-slate-900/45"
+              onClick={closePasswordModal}
+            />
+            <div className="relative w-full max-w-md surface-card p-4 sm:p-6 my-4 sm:my-0 max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between gap-3 mb-5">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900">Change Password</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Enter your current password and set a new one.
+                  </p>
+                </div>
+                <button
+                  onClick={closePasswordModal}
+                  className="btn-ghost p-2"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {passwordError && <div className="alert-error mb-4">{passwordError}</div>}
+              {passwordSuccess && <div className="alert-success mb-4">{passwordSuccess}</div>}
+
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div className="input-group">
+                  <label htmlFor="currentPassword" className="input-label">Current Password</label>
+                  <input
+                    id="currentPassword"
+                    name="currentPassword"
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={handlePasswordInput}
+                    className="input-field text-base sm:text-sm"
+                    placeholder="Enter current password"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label htmlFor="newPassword" className="input-label">New Password</label>
+                  <input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordInput}
+                    className="input-field text-base sm:text-sm"
+                    placeholder="Enter new password"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label htmlFor="confirmNewPassword" className="input-label">Confirm New Password</label>
+                  <input
+                    id="confirmNewPassword"
+                    name="confirmNewPassword"
+                    type="password"
+                    value={passwordForm.confirmNewPassword}
+                    onChange={handlePasswordInput}
+                    className="input-field text-base sm:text-sm"
+                    placeholder="Confirm new password"
+                  />
+                </div>
+
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Password must include uppercase, lowercase, number, special character, and minimum 8 characters.
+                </p>
+
+                <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={closePasswordModal}
+                    className="btn-ghost text-sm px-3 py-2 w-full sm:w-auto"
+                    disabled={passwordLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary text-sm px-4 py-2 w-full sm:w-auto"
+                    disabled={passwordLoading}
+                  >
+                    {passwordLoading ? (
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="60" strokeDashoffset="20" />
+                      </svg>
+                    ) : (
+                      <Lock className="w-4 h-4" />
+                    )}
+                    Update Password
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
 
     </div>
   );
