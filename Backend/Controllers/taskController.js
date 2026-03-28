@@ -1,6 +1,6 @@
 const Task = require("../models/Task");
 const cloudinary = require("../config/cloudinary");
-
+const { getPublicIdFromUrl } = require("../utils/getPublicId");
 
 /* ===================================== */
 /*            CREATE TASK                */
@@ -8,7 +8,6 @@ const cloudinary = require("../config/cloudinary");
 
 exports.createTask = async (req, res) => {
   try {
-
     const {
       title,
       description,
@@ -40,7 +39,6 @@ exports.createTask = async (req, res) => {
       });
 
       imageUrl = uploadResult.secure_url;
-
     }
 
     const task = await Task.create({
@@ -61,17 +59,13 @@ exports.createTask = async (req, res) => {
       message: "Task created successfully",
       task,
     });
-
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
-
 
 /* ===================================== */
 /*            GET MY TASKS               */
@@ -79,7 +73,6 @@ exports.createTask = async (req, res) => {
 
 exports.getMyTasks = async (req, res) => {
   try {
-
     const tasks = await Task.find({
       createdBy: req.user.id,
     })
@@ -90,17 +83,13 @@ exports.getMyTasks = async (req, res) => {
       success: true,
       tasks,
     });
-
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
-
 
 /* ===================================== */
 /*            FEED TASKS                 */
@@ -108,7 +97,6 @@ exports.getMyTasks = async (req, res) => {
 
 exports.getFeedTasks = async (req, res) => {
   try {
-
     const tasks = await Task.find({
       createdBy: { $ne: req.user.id },
       status: "open",
@@ -121,17 +109,13 @@ exports.getFeedTasks = async (req, res) => {
       success: true,
       tasks,
     });
-
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
-
 
 /* ===================================== */
 /*            GET TASK BY ID             */
@@ -139,7 +123,6 @@ exports.getFeedTasks = async (req, res) => {
 
 exports.getTaskById = async (req, res) => {
   try {
-
     const task = await Task.findById(req.params.id)
       .populate("createdBy", "first_name last_name profilePicture")
       .lean();
@@ -155,17 +138,13 @@ exports.getTaskById = async (req, res) => {
       success: true,
       task,
     });
-
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
-
 
 /* ===================================== */
 /*            GET ASSIGNED TASKS         */
@@ -173,7 +152,6 @@ exports.getTaskById = async (req, res) => {
 
 exports.getAssignedTasks = async (req, res) => {
   try {
-
     const tasks = await Task.find({
       assignedTo: req.user.id,
     })
@@ -185,17 +163,13 @@ exports.getAssignedTasks = async (req, res) => {
       success: true,
       tasks,
     });
-
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
-
 
 /* ===================================== */
 /*            UPDATE TASK                */
@@ -203,7 +177,6 @@ exports.getAssignedTasks = async (req, res) => {
 
 exports.updateTask = async (req, res) => {
   try {
-
     const taskId = req.params.id;
 
     const task = await Task.findById(taskId);
@@ -241,13 +214,21 @@ exports.updateTask = async (req, res) => {
     /* Upload new image if provided */
 
     if (picture && picture.startsWith("data:image")) {
+      // DELETE OLD IMAGE
+      if (task.picture) {
+        const publicId = getPublicIdFromUrl(task.picture);
 
+        if (publicId) {
+          await cloudinary.uploader.destroy(publicId);
+        }
+      }
+
+      // Upload new image
       const uploadResult = await cloudinary.uploader.upload(picture, {
         folder: "hirehelper/tasks",
       });
 
       imageUrl = uploadResult.secure_url;
-
     }
 
     const updatedTask = await Task.findByIdAndUpdate(
@@ -263,7 +244,7 @@ exports.updateTask = async (req, res) => {
         endTime,
         picture: imageUrl,
       },
-      { new: true }
+      { new: true },
     );
 
     res.json({
@@ -271,17 +252,13 @@ exports.updateTask = async (req, res) => {
       message: "Task updated successfully",
       task: updatedTask,
     });
-
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
-
 
 /* ===================================== */
 /*            DELETE TASK                */
@@ -289,7 +266,6 @@ exports.updateTask = async (req, res) => {
 
 exports.deleteTask = async (req, res) => {
   try {
-
     const taskId = req.params.id;
 
     const task = await Task.findById(taskId);
@@ -309,6 +285,17 @@ exports.deleteTask = async (req, res) => {
         message: "You are not allowed to delete this task",
       });
     }
+    // DELETE IMAGE FROM CLOUDINARY
+    if (task.picture) {
+      const publicId = getPublicIdFromUrl(task.picture);
+
+      if (publicId) {
+        const result = await cloudinary.uploader.destroy(publicId);
+        console.log("Cloudinary Delete Result:", result);
+      } else {
+        console.log("Invalid publicId, skipping delete");
+      }
+    }
 
     await Task.findByIdAndDelete(taskId);
 
@@ -316,13 +303,10 @@ exports.deleteTask = async (req, res) => {
       success: true,
       message: "Task deleted successfully",
     });
-
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
