@@ -1,5 +1,6 @@
 const Request = require("../models/Request");
 const Task = require("../models/Task");
+const AcceptedTask = require("../models/AcceptedTask");
 const { createNotification } = require("../utils/createNotification");
 
 /* ================= REQUEST TASK ================= */
@@ -160,6 +161,23 @@ exports.acceptRequest = async (req, res) => {
     request.status = "accepted";
     await request.save();
 
+    const existingAcceptedTask = await AcceptedTask.findOne({
+      task: request.task._id,
+    });
+
+    if (existingAcceptedTask) {
+      return res.status(400).json({
+        message: "Task already assigned",
+      });
+    }
+
+    await AcceptedTask.create({
+      task: request.task._id,
+      helper: request.requestedBy._id,
+      taskOwner: req.user.id,
+      request: request._id,
+    });
+
     // ✅ Assign task
     await Task.findByIdAndUpdate(request.task._id, {
       status: "assigned",
@@ -179,7 +197,7 @@ exports.acceptRequest = async (req, res) => {
         status: "pending",
         _id: { $ne: request._id },
       },
-      { status: "rejected" }
+      { status: "rejected" },
     );
 
     console.log("📢 Notifying accepted user");
@@ -231,8 +249,9 @@ exports.rejectRequest = async (req, res) => {
     const io = req.app.get("io");
     const onlineUsers = req.app.get("onlineUsers");
 
-    const request = await Request.findById(req.params.requestId)
-      .populate("task");
+    const request = await Request.findById(req.params.requestId).populate(
+      "task",
+    );
 
     if (!request) {
       return res.status(404).json({ message: "Request not found" });
