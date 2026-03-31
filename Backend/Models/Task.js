@@ -30,8 +30,18 @@ const taskSchema = new mongoose.Schema(
     },
 
     location: {
-      type: String,
-      required: true,
+      address: {
+        type: String,
+        required: true,
+      },
+      coordinates: {
+        lat: Number,
+        lng: Number,
+      },
+      isHidden: {
+        type: Boolean,
+        default: true, // hidden by default
+      },
     },
 
     startDate: {

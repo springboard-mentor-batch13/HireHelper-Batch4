@@ -1,6 +1,7 @@
 const Task = require("../models/Task");
 const cloudinary = require("../config/cloudinary");
 const { getPublicIdFromUrl } = require("../utils/getPublicId");
+const geocodeAddress = require("../services/geocodeService");
 
 /* ===================================== */
 /*            CREATE TASK                */
@@ -27,6 +28,15 @@ exports.createTask = async (req, res) => {
       });
     }
 
+    const { lat, lng } = await geocodeAddress(location);
+
+    if (!lat || !lng) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location provided",
+      });
+    }
+
     let imageUrl = "";
 
     if (picture) {
@@ -46,7 +56,14 @@ exports.createTask = async (req, res) => {
       title,
       description,
       category,
-      location,
+      location: {
+        address: location,
+        coordinates: {
+          lat,
+          lng,
+        },
+        isHidden: true,
+      },
       startDate,
       startTime,
       endDate,
@@ -105,9 +122,21 @@ exports.getFeedTasks = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const safeTasks = tasks.map((task) => {
+      if (task.location?.isHidden) {
+        return {
+          ...task,
+          location: {
+            address: "📍 Location available after acceptance",
+          },
+        };
+      }
+      return task;
+    });
+
     res.json({
       success: true,
-      tasks,
+      tasks: safeTasks,
     });
   } catch (error) {
     res.status(500).json({
@@ -132,6 +161,12 @@ exports.getTaskById = async (req, res) => {
         success: false,
         message: "Task not found",
       });
+    }
+
+    if (task.location?.isHidden) {
+      task.location = {
+        address: "📍 Location available after acceptance",
+      };
     }
 
     res.json({
@@ -230,6 +265,17 @@ exports.updateTask = async (req, res) => {
 
       imageUrl = uploadResult.secure_url;
     }
+    let updatedLocation = task.location;
+
+    if (location) {
+      const { lat, lng } = await geocodeAddress(location);
+
+      updatedLocation = {
+        address: location,
+        coordinates: { lat, lng },
+        isHidden: true, // reset visibility
+      };
+    }
 
     const updatedTask = await Task.findByIdAndUpdate(
       taskId,
@@ -237,7 +283,7 @@ exports.updateTask = async (req, res) => {
         title,
         description,
         category,
-        location,
+        location:updatedLocation,
         startDate,
         startTime,
         endDate,
