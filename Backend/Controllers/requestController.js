@@ -157,10 +157,6 @@ exports.acceptRequest = async (req, res) => {
       });
     }
 
-    // ✅ Accept request
-    request.status = "accepted";
-    await request.save();
-
     const existingAcceptedTask = await AcceptedTask.findOne({
       task: request.task._id,
     });
@@ -171,6 +167,10 @@ exports.acceptRequest = async (req, res) => {
       });
     }
 
+    // ✅ Accept request
+    request.status = "accepted";
+    await request.save();
+
     await AcceptedTask.create({
       task: request.task._id,
       helper: request.requestedBy._id,
@@ -179,11 +179,17 @@ exports.acceptRequest = async (req, res) => {
     });
 
     // ✅ Assign task
-    await Task.findByIdAndUpdate(request.task._id, {
-      status: "assigned",
-      assignedTo: request.requestedBy._id,
-    });
+    const taskToUpdate = await Task.findById(request.task._id);
 
+    taskToUpdate.status = "assigned";
+    taskToUpdate.assignedTo = request.requestedBy._id;
+
+    if (taskToUpdate.location) {
+      taskToUpdate.location.isHidden = false;
+    }
+
+    await taskToUpdate.save();
+    
     // ✅ Reject other requests
     const rejectedRequests = await Request.find({
       task: request.task._id,
