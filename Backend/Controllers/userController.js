@@ -4,6 +4,7 @@ const Request = require("../models/Request");
 
 const bcrypt = require("bcryptjs");
 const { validatePassword } = require("../utils/validatePassword");
+const sendOtpToUser = require("../utils/sendOtpToUser");
 
 
 const { getPublicIdFromUrl } = require("../utils/getPublicId");
@@ -186,6 +187,105 @@ exports.changePassword = async (req, res) => {
     });
   } catch (error) {
     console.error("Change Password Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to change password.",
+    });
+  }
+};
+
+/* ================= SEND CHANGE PASSWORD OTP ================= */
+
+exports.sendChangePasswordOtp = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    await sendOtpToUser(user, user.email_id);
+
+    res.json({
+      success: true,
+      message: "OTP sent to your registered email.",
+    });
+  } catch (error) {
+    console.error("Send Change Password OTP Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send OTP.",
+    });
+  }
+};
+
+/* ================= CHANGE PASSWORD WITH OTP ================= */
+
+exports.changePasswordWithOtp = async (req, res) => {
+  try {
+    const { otp, newPassword } = req.body;
+
+    if (!otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP and new password are required.",
+      });
+    }
+
+    if (!validatePassword(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password must contain uppercase, lowercase, number, special character and minimum 8 characters",
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (!user.otp) {
+      return res.status(400).json({
+        success: false,
+        message: "No OTP found. Please request a new OTP.",
+      });
+    }
+
+    const isValidOtp = await bcrypt.compare(otp, user.otp);
+    if (!isValidOtp || user.otpExpiry < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from current password.",
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.otp = null;
+    user.otpExpiry = null;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Password changed successfully.",
+    });
+  } catch (error) {
+    console.error("Change Password With OTP Error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to change password.",

@@ -4,7 +4,8 @@ import {
   getProfile,
   updateProfile,
   updateProfilePicture,
-  changePassword,
+  sendChangePasswordOtp,
+  changePasswordWithOtp,
 } from "../config/api";
 import { Camera, User, Mail, Phone, Pencil, Check, X, Lock } from "lucide-react";
 
@@ -18,8 +19,9 @@ const Settings = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
+    otp: "",
     newPassword: "",
     confirmNewPassword: "",
   });
@@ -83,12 +85,13 @@ const Settings = () => {
 
   const openPasswordModal = () => {
     setPasswordForm({
-      currentPassword: "",
+      otp: "",
       newPassword: "",
       confirmNewPassword: "",
     });
     setPasswordError("");
     setPasswordSuccess("");
+    setOtpSent(false);
     setPasswordModalOpen(true);
   };
 
@@ -106,12 +109,29 @@ const Settings = () => {
     setPasswordError("");
     setPasswordSuccess("");
 
-    if (
-      !passwordForm.currentPassword ||
-      !passwordForm.newPassword ||
-      !passwordForm.confirmNewPassword
-    ) {
-      setPasswordError("Please fill in all password fields.");
+    if (!otpSent) {
+      setPasswordLoading(true);
+      try {
+        const res = await sendChangePasswordOtp();
+        setOtpSent(true);
+        setPasswordSuccess(
+          res.data?.message || "OTP sent to your registered email.",
+        );
+      } catch (err) {
+        setPasswordError(err.response?.data?.message || "Failed to send OTP.");
+      } finally {
+        setPasswordLoading(false);
+      }
+      return;
+    }
+
+    if (!passwordForm.otp || !passwordForm.newPassword || !passwordForm.confirmNewPassword) {
+      setPasswordError("Please fill OTP, new password, and confirm password.");
+      return;
+    }
+
+    if (passwordForm.otp.trim().length !== 6) {
+      setPasswordError("Please enter a valid 6-digit OTP.");
       return;
     }
 
@@ -122,8 +142,8 @@ const Settings = () => {
 
     setPasswordLoading(true);
     try {
-      const res = await changePassword({
-        currentPassword: passwordForm.currentPassword,
+      const res = await changePasswordWithOtp({
+        otp: passwordForm.otp,
         newPassword: passwordForm.newPassword,
       });
 
@@ -133,6 +153,20 @@ const Settings = () => {
       }, 1200);
     } catch (err) {
       setPasswordError(err.response?.data?.message || "Failed to change password.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setPasswordError("");
+    setPasswordSuccess("");
+    setPasswordLoading(true);
+    try {
+      const res = await sendChangePasswordOtp();
+      setPasswordSuccess(res.data?.message || "OTP sent to your registered email.");
+    } catch (err) {
+      setPasswordError(err.response?.data?.message || "Failed to send OTP.");
     } finally {
       setPasswordLoading(false);
     }
@@ -161,6 +195,7 @@ const Settings = () => {
     { id: "s-email",  name: "email_id",      label: "Email Address", icon: Mail,  type: "email", placeholder: "your@email.com", readOnly: true },
     { id: "s-phone",  name: "phone_number",  label: "Phone Number",  icon: Phone, type: "tel",   placeholder: "0123456789" },
   ];
+  const canEnterNewPassword = otpSent && passwordForm.otp.trim().length === 6;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12 px-3 sm:px-0 page-enter">
@@ -357,7 +392,9 @@ const Settings = () => {
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-slate-900">Change Password</h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Enter your current password and set a new one.
+                    {otpSent
+                      ? "Enter OTP and set your new password."
+                      : "We will send an OTP to your registered email."}
                   </p>
                 </div>
                 <button
@@ -373,18 +410,21 @@ const Settings = () => {
               {passwordSuccess && <div className="alert-success mb-4">{passwordSuccess}</div>}
 
               <form onSubmit={handleChangePassword} className="space-y-4">
-                <div className="input-group">
-                  <label htmlFor="currentPassword" className="input-label">Current Password</label>
-                  <input
-                    id="currentPassword"
-                    name="currentPassword"
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={handlePasswordInput}
-                    className="input-field text-base sm:text-sm"
-                    placeholder="Enter current password"
-                  />
-                </div>
+                {otpSent && (
+                  <div className="input-group">
+                    <label htmlFor="otp" className="input-label">OTP</label>
+                    <input
+                      id="otp"
+                      name="otp"
+                      type="text"
+                      value={passwordForm.otp}
+                      onChange={handlePasswordInput}
+                      className="input-field text-base sm:text-sm"
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                    />
+                  </div>
+                )}
 
                 <div className="input-group">
                   <label htmlFor="newPassword" className="input-label">New Password</label>
@@ -396,6 +436,7 @@ const Settings = () => {
                     onChange={handlePasswordInput}
                     className="input-field text-base sm:text-sm"
                     placeholder="Enter new password"
+                    disabled={!canEnterNewPassword}
                   />
                 </div>
 
@@ -409,12 +450,24 @@ const Settings = () => {
                     onChange={handlePasswordInput}
                     className="input-field text-base sm:text-sm"
                     placeholder="Confirm new password"
+                    disabled={!canEnterNewPassword}
                   />
                 </div>
 
                 <p className="text-[11px] text-slate-500 leading-relaxed">
                   Password must include uppercase, lowercase, number, special character, and minimum 8 characters.
                 </p>
+
+                {otpSent && (
+                  <button
+                    type="button"
+                    className="btn-ghost text-xs px-3 py-2"
+                    onClick={handleResendOtp}
+                    disabled={passwordLoading}
+                  >
+                    Resend OTP
+                  </button>
+                )}
 
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
                   <button
@@ -437,7 +490,7 @@ const Settings = () => {
                     ) : (
                       <Lock className="w-4 h-4" />
                     )}
-                    Update Password
+                    {otpSent ? "Update Password" : "Send OTP"}
                   </button>
                 </div>
               </form>
