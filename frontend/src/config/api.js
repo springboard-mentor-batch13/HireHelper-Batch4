@@ -70,6 +70,12 @@ export const updateProfilePicture = (data) =>
 export const changePassword = (data) =>
   BASE_API.put("/users/change-password", data);
 
+export const sendChangePasswordOtp = () =>
+  BASE_API.post("/users/change-password/send-otp");
+
+export const changePasswordWithOtp = (data) =>
+  BASE_API.put("/users/change-password/verify-otp", data);
+
 
 /* =====================================================
    TASK API
