@@ -12,6 +12,7 @@ import {
   Trash2,
   Loader2,
   Plus,
+  Eye,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -75,6 +76,7 @@ export default function MyTasks() {
   };
 
   const handleEdit = (id) => navigate(`/dashboard/edit-task/${id}`);
+  const handleView = (id) => navigate(`/dashboard/task/${id}`);
 
   const filteredTasks = useMemo(() => {
     const s = query.toLowerCase();
@@ -208,17 +210,24 @@ export default function MyTasks() {
                 )}
 
                 {/* Actions */}
-                <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-100">
+                <div className="mt-auto grid grid-cols-1 sm:grid-cols-3 gap-2 pt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => handleView(task._id)}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    View
+                  </button>
                   <button
                     onClick={() => handleEdit(task._id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all duration-150 cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all duration-150 cursor-pointer"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(task._id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 transition-all duration-150 cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 transition-all duration-150 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Delete

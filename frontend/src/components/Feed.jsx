@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getFeedTasks, requestTask } from "../config/api";
-import { useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   MapPin,
   Calendar as CalendarIcon,
@@ -11,6 +11,7 @@ import {
   Rss,
   Search,
   SlidersHorizontal,
+  Eye,
 } from "lucide-react";
 
 function formatDate(dateValue) {
@@ -32,6 +33,7 @@ function MetaChip({ icon, children }) {
 const CATEGORIES = ["All", "Moving", "Cleaning", "General", "Assembly", "Garden", "Delivery"];
 
 export default function Feed() {
+  const navigate = useNavigate();
   const { sidebarOpen } = useOutletContext() || { sidebarOpen: true };
 
   const [tasks, setTasks]           = useState([]);
@@ -79,6 +81,10 @@ export default function Feed() {
     } catch (err) {
       setRequestState((prev) => ({ ...prev, [taskId]: { loading: false, success: "", error: err.response?.data?.message || err.response?.data?.error || "Request failed" } }));
     }
+  };
+
+  const handleView = (taskId) => {
+    navigate(`/dashboard/task/${taskId}`);
   };
 
   return (
@@ -227,7 +233,14 @@ export default function Feed() {
                   {state.success && <p className="text-xs text-emerald-600 mb-2 font-medium">{state.success}</p>}
 
                   {/* Action button */}
-                  <div className="mt-auto">
+                  <div className="mt-auto space-y-2">
+                    <button
+                      onClick={() => handleView(task._id)}
+                      className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer border bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Details
+                    </button>
                     <button
                       onClick={() => handleRequest(task._id)}
                       disabled={isDisabled}
