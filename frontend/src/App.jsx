@@ -20,6 +20,7 @@ import Notifications from "./components/Notifications";
 
 import EditProfile from "./pages/EditProfile";
 import EditTask from "./components/EditTask";
+import TaskDetails from "./components/TaskDetails";
 
 import { NotificationProvider } from "./context/NotificationContext";
 
@@ -71,6 +72,7 @@ function App() {
             {/* Edit Pages */}
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="edit-task/:id" element={<EditTask />} />
+            <Route path="task/:id" element={<TaskDetails />} />
 
           </Route>
 
