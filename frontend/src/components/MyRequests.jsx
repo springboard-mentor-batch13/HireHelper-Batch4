@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { getMyRequests } from '../config/api';
 import { Send, User, Calendar, MapPin, Clock, AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { getLocationText } from "../utils/taskLocation";
 
 function formatDate(dateValue) {
   if (!dateValue) return '-';
@@ -124,7 +125,7 @@ export default function MyRequests() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5" />
-                      <span>{req.task?.location}</span>
+                      <span>{getLocationText(req.task?.location) || "-"}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { getTaskById } from "../config/api";
+import { getLocationText } from "../utils/taskLocation";
 import {
   AlertCircle,
   ArrowLeft,
@@ -54,8 +55,10 @@ export default function TaskDetails() {
   }, [id]);
 
   const mapUrl = useMemo(() => {
-    if (!task?.location) return "";
-    return `https://www.google.com/maps?q=${encodeURIComponent(task.location)}&output=embed`;
+    const locationText = getLocationText(task?.location);
+    if (!locationText) return "";
+    if (locationText.toLowerCase().includes("location available after acceptance")) return "";
+    return `https://www.google.com/maps?q=${encodeURIComponent(locationText)}&output=embed`;
   }, [task?.location]);
 
   if (loading) {
@@ -162,7 +165,7 @@ export default function TaskDetails() {
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Location</p>
             <p className="text-sm text-slate-700 leading-relaxed flex items-start gap-2">
               <MapPin className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
-              <span>{task.location || "-"}</span>
+              <span>{getLocationText(task.location) || "-"}</span>
             </p>
           </div>
         </div>
