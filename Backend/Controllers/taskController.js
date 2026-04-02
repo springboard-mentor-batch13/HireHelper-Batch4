@@ -153,7 +153,13 @@ exports.getTaskById = async (req, res) => {
       });
     }
 
-    if (task.location?.isHidden) {
+    const isTaskOwner =
+      task.createdBy?._id?.toString() === req.user.id.toString();
+    const isAssignedHelper =
+      task.assignedTo?.toString() === req.user.id.toString();
+    const canViewExactLocation = isTaskOwner || isAssignedHelper;
+
+    if (task.location?.isHidden && !canViewExactLocation) {
       task.location = {
         address: "📍 Location available after acceptance",
       };
