@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext, useNavigate } from 'react-router-dom'; // ✅ added useNavigate
 import { getMyRequests } from '../config/api';
 import { Send, User, Calendar, MapPin, Clock, AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { getLocationText } from "../utils/taskLocation";
@@ -13,6 +13,8 @@ function formatDate(dateValue) {
 
 export default function MyRequests() {
   const { sidebarOpen } = useOutletContext() || { sidebarOpen: true };
+  const navigate = useNavigate(); // ✅ added
+
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,6 +34,12 @@ export default function MyRequests() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ NEW FUNCTION
+  const handleViewTask = (taskId) => {
+    if (!taskId) return;
+    navigate(`/dashboard/task/${taskId}`);
   };
 
   const stats = {
@@ -95,7 +103,11 @@ export default function MyRequests() {
       {!loading && !error && requests.length > 0 && (
         <div className="space-y-4">
           {requests.map((req) => (
-            <div key={req._id} className="surface-card-hover p-5">
+            <div
+              key={req._id}
+              onClick={() => handleViewTask(req.task?._id)} // ✅ added click
+              className="surface-card-hover p-5 cursor-pointer" // ✅ added cursor
+            >
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 space-y-3">
                   <div className="flex items-start justify-between gap-3">
@@ -115,7 +127,9 @@ export default function MyRequests() {
                       {req.status}
                     </span>
                   </div>
+
                   <p className="text-sm text-slate-600 line-clamp-2">{req.task?.description}</p>
+
                   <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500">
                     <div className="flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5" />
@@ -123,15 +137,18 @@ export default function MyRequests() {
                         {req.task?.createdBy?.first_name} {req.task?.createdBy?.last_name}
                       </span>
                     </div>
+
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5" />
                       <span>{getLocationText(req.task?.location) || "-"}</span>
                     </div>
+
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />
                       <span>Requested {formatDate(req.createdAt)}</span>
                     </div>
                   </div>
+
                 </div>
               </div>
             </div>
