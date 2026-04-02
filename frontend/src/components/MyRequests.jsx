@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { getMyRequests } from '../config/api';
-import { Send, User, Calendar, MapPin, Clock, AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Send, User, Calendar, MapPin, Clock, AlertCircle, Loader2, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { getLocationText } from "../utils/taskLocation";
 
 function formatDate(dateValue) {
@@ -12,6 +12,7 @@ function formatDate(dateValue) {
 }
 
 export default function MyRequests() {
+  const navigate = useNavigate();
   const { sidebarOpen } = useOutletContext() || { sidebarOpen: true };
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,26 +95,50 @@ export default function MyRequests() {
 
       {!loading && !error && requests.length > 0 && (
         <div className="space-y-4">
-          {requests.map((req) => (
-            <div key={req._id} className="surface-card-hover p-5">
+          {requests.map((req) => {
+            const isAccepted = req.status === "accepted";
+            return (
+            <div
+              key={req._id}
+              className={`surface-card-hover p-5 ${isAccepted ? "cursor-pointer" : ""}`}
+              onClick={() => isAccepted && req.task?._id && navigate(`/dashboard/task/${req.task._id}`)}
+              role={isAccepted ? "button" : undefined}
+              tabIndex={isAccepted ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (!isAccepted || !req.task?._id) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate(`/dashboard/task/${req.task._id}`);
+                }
+              }}
+              title={isAccepted ? "View full task details" : ""}
+            >
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="text-base font-bold text-slate-900">{req.task?.title}</h3>
-                    <span
-                      className={`badge flex-shrink-0 ${
-                        req.status === 'pending'
-                          ? 'badge-amber'
-                          : req.status === 'accepted'
-                          ? 'badge-green'
-                          : 'badge-red'
-                      }`}
-                    >
-                      {req.status === 'pending' && <Clock className="w-3 h-3" />}
-                      {req.status === 'accepted' && <CheckCircle className="w-3 h-3" />}
-                      {req.status === 'rejected' && <XCircle className="w-3 h-3" />}
-                      {req.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {isAccepted && (
+                        <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5 flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          View Details
+                        </span>
+                      )}
+                      <span
+                        className={`badge flex-shrink-0 ${
+                          req.status === 'pending'
+                            ? 'badge-amber'
+                            : req.status === 'accepted'
+                            ? 'badge-green'
+                            : 'badge-red'
+                        }`}
+                      >
+                        {req.status === 'pending' && <Clock className="w-3 h-3" />}
+                        {req.status === 'accepted' && <CheckCircle className="w-3 h-3" />}
+                        {req.status === 'rejected' && <XCircle className="w-3 h-3" />}
+                        {req.status}
+                      </span>
+                    </div>
                   </div>
                   <p className="text-sm text-slate-600 line-clamp-2">{req.task?.description}</p>
                   <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500">
@@ -135,7 +160,7 @@ export default function MyRequests() {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>
