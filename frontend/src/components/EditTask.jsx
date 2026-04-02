@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import { getTaskById, updateTask } from "../config/api";
 import { useToast } from "../context/ToastContext";
+import { getLocationText } from "../utils/taskLocation";
 import {
   AlertCircle,
   Loader2,
@@ -68,7 +69,7 @@ export default function EditTask() {
         setForm({
           title: task.title || "",
           description: task.description || "",
-          location: task.location || "",
+          location: getLocationText(task.location),
           startDate: task.startDate?.slice(0, 10) || "",
           startTime: task.startTime || "",
           endDate: task.endDate?.slice(0, 10) || "",

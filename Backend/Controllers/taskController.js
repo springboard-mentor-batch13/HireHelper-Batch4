@@ -28,14 +28,7 @@ exports.createTask = async (req, res) => {
       });
     }
 
-    const { lat, lng } = await geocodeAddress(location);
-
-    if (!lat || !lng) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid location provided",
-      });
-    }
+    const coordinates = await geocodeAddress(location);
 
     let imageUrl = "";
 
@@ -58,10 +51,7 @@ exports.createTask = async (req, res) => {
       category,
       location: {
         address: location,
-        coordinates: {
-          lat,
-          lng,
-        },
+        coordinates: coordinates || undefined,
         isHidden: true,
       },
       startDate,
@@ -268,11 +258,11 @@ exports.updateTask = async (req, res) => {
     let updatedLocation = task.location;
 
     if (location) {
-      const { lat, lng } = await geocodeAddress(location);
+      const coordinates = await geocodeAddress(location);
 
       updatedLocation = {
         address: location,
-        coordinates: { lat, lng },
+        coordinates: coordinates || undefined,
         isHidden: true, // reset visibility
       };
     }

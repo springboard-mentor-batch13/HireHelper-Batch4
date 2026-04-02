@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getMyTasks, deleteTask } from "../config/api";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useConfirmDialog } from "../context/ConfirmDialogContext";
+import { getLocationText } from "../utils/taskLocation";
 import {
   Search,
   MapPin,
@@ -81,7 +82,7 @@ export default function MyTasks() {
   const filteredTasks = useMemo(() => {
     const s = query.toLowerCase();
     return tasks.filter((t) =>
-      `${t.title} ${t.description} ${t.location}`.toLowerCase().includes(s)
+      `${t.title} ${t.description} ${getLocationText(t.location)}`.toLowerCase().includes(s)
     );
   }, [tasks, query]);
 
@@ -194,7 +195,7 @@ export default function MyTasks() {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-[13px] text-slate-600">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span className="truncate">{task.location}</span>
+                    <span className="truncate">{getLocationText(task.location) || "-"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-[13px] text-slate-600">
                     <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />

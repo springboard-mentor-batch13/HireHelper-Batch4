@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getFeedTasks, requestTask } from "../config/api";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import { getLocationText } from "../utils/taskLocation";
 import {
   MapPin,
   Calendar as CalendarIcon,
@@ -62,7 +63,7 @@ export default function Feed() {
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const titleMatch    = task.title?.toLowerCase().includes(searchTitle.toLowerCase());
-      const locationMatch = task.location?.toLowerCase().includes(searchLocation.toLowerCase());
+      const locationMatch = getLocationText(task.location).toLowerCase().includes(searchLocation.toLowerCase());
       const categoryMatch = activeCategory === "All" || task.category === activeCategory;
       return titleMatch && locationMatch && categoryMatch;
     });
@@ -215,7 +216,7 @@ export default function Feed() {
                   {/* Meta chips */}
                   <div className="space-y-1.5 mb-4">
                     <MetaChip icon={<User className="w-3.5 h-3.5" />}>{userName || "Anonymous"}</MetaChip>
-                    <MetaChip icon={<MapPin className="w-3.5 h-3.5" />}>{task.location}</MetaChip>
+                    <MetaChip icon={<MapPin className="w-3.5 h-3.5" />}>{getLocationText(task.location) || "-"}</MetaChip>
                     <MetaChip icon={<CalendarIcon className="w-3.5 h-3.5" />}>
                       {formatDate(task.startDate)}{task.startTime ? ` · ${task.startTime}` : ""}
                     </MetaChip>

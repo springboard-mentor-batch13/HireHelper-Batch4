@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <NotificationProvider> {/* ✅ MOVED HERE */}
-      <Router>
+      <Router future={{ v7_relativeSplatPath: true }}>
         <Routes>
 
           {/* Public Routes */}
